@@ -1,0 +1,182 @@
+type: edu
+custom_name: stage7
+files:
+- name: test/Test.java
+  visible: false
+  text: |
+    import calculator.MainKt;
+    import org.hyperskill.hstest.stage.StageTest;
+    import org.hyperskill.hstest.testcase.SimpleTestCase;
+
+    import java.util.Arrays;
+    import java.util.List;
+
+    public class Test extends StageTest {
+
+        public Test() {
+            super(MainKt.class);
+        }
+
+        @Override
+        public List<SimpleTestCase> generate() {
+            return Arrays.asList(
+                /* Check simple additions and subtractions */
+                new SimpleTestCase(
+                    "4 + 6 - 8\n\n\n2 - 3 - 4\n\n8 + 7 - 4\n1 +++ 2 * 3 -- 4\n/exit",
+                    "2\n-5\n11\n11\nBye!"
+                ),
+                /* Check handling unknown commands */
+                new SimpleTestCase(
+                    "/command\n/exit",
+                    "Unknown command\nBye!"
+                ),
+                /* Check all operations */
+                new SimpleTestCase(
+                    "3 + 8 * ((4 + 3) * 2 + 1) - 6 / (2 + 1)\n/exit",
+                    "121\nBye!"
+                ),
+                /* Check with an invalid expressions */
+                new SimpleTestCase(
+                    "8 * 3 + 12 * (4 - 2)\n4 * (2 + 3\n4 + 3)\n/exit",
+                    "48\nInvalid expression\nInvalid expression\nBye!"
+                ),
+                /* Check expressions with variables */
+                new SimpleTestCase(
+                    "a = 4\nb = 5\nc = 6\na*2+b*3+c*(2+3)\n/exit",
+                    "53\nBye!"
+                ),
+                /* Check reassignment */
+                new SimpleTestCase(
+                    "a = 1\na = 2\na = 3\na\n/exit",
+                    "3\nBye!"
+                )
+            );
+        }
+    }
+  learner_created: false
+- name: src/calculator/Main.kt
+  visible: true
+  text: |-
+    package calculator
+
+    import java.lang.Exception
+    import java.util.Scanner
+
+    val variables = mutableMapOf<String, String>()
+
+    fun main() {
+        val scanner = Scanner(System.`in`)
+
+        while (true) {
+            val input = scanner.nextLine()
+            when {
+                input.startsWith("/") -> {
+                    when (input) {
+                        "/exit" -> {
+                            print("Bye!")
+                            return
+                        }
+                        "/help" -> {
+                            println("""
+                                The program calculates the sum of numbers.
+                                Even number of minuses gives a plus, and the odd number of minuses gives a minus/
+                            """.trimIndent())
+                        }
+                        else -> {
+                            println("Unknown command")
+                        }
+                    }
+                }
+                input.contains("=") -> {
+                    val x = input.replace("\\s+".toRegex(), "")
+                        .split("=")
+
+                    if (!x[0].matches("[A-Za-z]+".toRegex())) {
+                        println("Invalid identifier")
+                    } else if (x.size != 2 || !x[1].isValidVariableName() && !x[1].isValidValue()) {
+                        println("Invalid assignment")
+                    } else if (x[1].isValidVariableName() && variables[x[1]] == null) {
+                        println("Unknown variable")
+                    } else {
+                        variables[x[0]] = x[1]
+                    }
+                }
+                input.isNotEmpty() -> {
+                    try {
+                        val operators = input.split("\\s*[^+\\-/*]+\\s*".toRegex())
+                            .filter { it.isNotEmpty() }
+                        val operands = input.split("\\s*[+\\-/*]+\\s*".toRegex())
+                            .mapIndexed { index, s ->
+                                if (index == 0 && s.isEmpty()) {
+                                    0
+                                } else if (s.isNotEmpty()) {
+                                    getValue(s).toInt()
+                                } else {
+                                    throw InvalidExpressionException()
+                                }
+                            }
+                            .toMutableList()
+
+                        if (operators.size != operands.size - 1)
+                            throw InvalidExpressionException()
+
+                        operators.forEachIndexed { index, s ->
+                            when (simplifyOperator(s)) {
+                                "+" -> operands[index + 1] = operands[index] + operands[index + 1]
+                                "-" -> operands[index + 1] = operands[index] - operands[index + 1]
+                                "*" -> operands[index + 1] = operands[index] * operands[index + 1]
+                                "/" -> operands[index + 1] = operands[index] / operands[index + 1]
+                            }
+                        }
+
+                        println(operands[operands.size - 1])
+                    } catch (e: InvalidExpressionException) {
+                        println("Invalid expression")
+                    } catch (e: UnknownVariableException) {
+                        println("Unknown variable")
+                    }
+                }
+            }
+        }
+    }
+
+    private fun getValue(variable: String): String {
+        var value = variables[variable]
+
+        if (value != null && !value.isValidValue()) {
+            value = getValue(value)
+        } else if (variable.isValidValue()) {
+            return variable
+        }
+
+        return value ?: throw UnknownVariableException()
+    }
+
+    private fun simplifyOperator(operator: String): String {
+        val y = operator.replace("\\s+".toRegex(), "")
+
+        return if (y.length > 1) {
+            if (y.all { it == '+' }) {
+                "+"
+            } else {
+                when (y.replace("+", "").count() % 2) {
+                    0 -> "+"
+                    1 -> "-"
+                    else -> throw InvalidExpressionException()
+                }
+            }
+        } else {
+            y
+        }
+    }
+
+    private fun String?.isValidVariableName() = this?.matches("[A-Za-z]+".toRegex()) ?: false
+
+    private fun String?.isValidValue() = this?.matches("\\d+".toRegex()) ?: false
+
+    class InvalidExpressionException : Exception()
+    class UnknownVariableException : Exception()
+  learner_created: true
+feedback_link: https://hyperskill.org/projects/88/stages/492/implement
+status: Unchecked
+record: -1

@@ -1,0 +1,159 @@
+type: edu
+custom_name: stage6
+files:
+- name: test/Test.java
+  visible: false
+  text: |
+    import calculator.MainKt;
+    import org.hyperskill.hstest.stage.StageTest;
+    import org.hyperskill.hstest.testcase.SimpleTestCase;
+
+    import java.util.Arrays;
+    import java.util.List;
+
+    public class Test extends StageTest {
+
+        public Test() {
+            super(MainKt.class);
+        }
+
+        @Override
+        public List<SimpleTestCase> generate() {
+            return Arrays.asList(
+                /* Check simple additions and subtractions */
+                new SimpleTestCase(
+                    "4 + 6 - 8\n\n\n2 - 3 - 4\n\n8 + 7 - 4\n/exit",
+                    "2\n-5\n11\nBye!"
+                ),
+                /* Check handling unknown commands */
+                new SimpleTestCase(
+                    "/command\n/exit",
+                    "Unknown command\nBye!"
+                ),
+                /* Check different assignments */
+                new SimpleTestCase(
+                    "n = 3\nm=4\na =   5\nb = a\nn\nm\na\nb\ncount = 10\ncount\n/exit",
+                    "3\n4\n5\n5\n10\nBye!"
+                ),
+                /* Check expressions with variables */
+                new SimpleTestCase(
+                    "a = 3\nb = 4\nc = 5\na + b - c\nb - c + 4 - a\na = 800\na + b + c\n/exit",
+                    "2\n0\n809\nBye!"
+                ),
+                /* Check reassignment */
+                new SimpleTestCase(
+                    "a = 1\na = 2\na = 3\na\n/exit",
+                    "3\nBye!"
+                ),
+                /* Check handling unknown variables */
+                new SimpleTestCase(
+                    "q\nr\nq = 10\nr = 20\nq\nr\nR\n/exit",
+                    "Unknown variable\n" +
+                        "Unknown variable\n" +
+                        "10\n20\n" +
+                        "Unknown variable\n" +
+                        "Bye!"
+                ),
+                /* Check handling incorrect assignments */
+                new SimpleTestCase(
+                    "a1 = 8\nn = a2a\na = 7 = 8\nnum = 10\n/exit",
+                    "Invalid identifier\n" +
+                        "Invalid assignment\n" +
+                        "Invalid assignment\n" +
+                        "Bye!"
+                )
+            );
+        }
+    }
+  learner_created: false
+- name: src/calculator/Main.kt
+  visible: true
+  text: |-
+    package calculator
+
+    import java.lang.Exception
+    import java.util.Scanner
+
+    fun main() {
+        val scanner = Scanner(System.`in`)
+
+        while (true) {
+            val input = scanner.nextLine()
+            when {
+                input.startsWith("/") -> {
+                    when (input) {
+                        "/exit" -> {
+                            print("Bye!")
+                            return
+                        }
+                        "/help" -> {
+                            println("""
+                                The program calculates the sum of numbers.
+                                Even number of minuses gives a plus, and the odd number of minuses gives a minus/
+                            """.trimIndent())
+                        }
+                        else -> {
+                            println("Unknown command")
+                        }
+                    }
+                }
+                input.isNotEmpty() -> {
+                    try {
+                        val operators = input.split("\\s*\\d+\\s*".toRegex())
+                            .filter { it.isNotEmpty() }
+                        val operands = input.split("\\s*\\D+\\s*".toRegex())
+                            .mapIndexed { index, s ->
+                                if (index == 0 && s.isEmpty()) {
+                                    0
+                                } else if (s.isNotEmpty()) {
+                                    s.toInt()
+                                } else {
+                                    throw InvalidExpressionException()
+                                }
+                            }
+                            .toMutableList()
+
+                        if (operators.size != operands.size - 1)
+                            throw InvalidExpressionException()
+
+                        operators.forEachIndexed { index, s ->
+                            when (simplifyOperator(s)) {
+                                "+" -> operands[index + 1] = operands[index] + operands[index + 1]
+                                "-" -> operands[index + 1] = operands[index] - operands[index + 1]
+                                "*" -> operands[index + 1] = operands[index] * operands[index + 1]
+                                "/" -> operands[index + 1] = operands[index] / operands[index + 1]
+                            }
+                        }
+
+                        println(operands[operands.size - 1])
+                    } catch (e: Exception) {
+                        print("Invalid expression\n")
+                    }
+                }
+            }
+        }
+    }
+
+    private fun simplifyOperator(operator: String): String {
+        val y = operator.replace("\\s+".toRegex(), "")
+
+        return if (y.length > 1) {
+            if (y.all { it == '+' }) {
+                "+"
+            } else {
+                when (y.replace("+", "").count() % 2) {
+                    0 -> "+"
+                    1 -> "-"
+                    else -> throw InvalidExpressionException()
+                }
+            }
+        } else {
+            y
+        }
+    }
+
+    class InvalidExpressionException : Exception()
+  learner_created: true
+feedback_link: https://hyperskill.org/projects/88/stages/491/implement
+status: Solved
+record: 6

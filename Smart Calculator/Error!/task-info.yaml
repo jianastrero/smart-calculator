@@ -1,0 +1,119 @@
+type: edu
+custom_name: stage5
+files:
+- name: test/Test.java
+  visible: false
+  text: |
+    import calculator.MainKt;
+    import org.hyperskill.hstest.stage.StageTest;
+    import org.hyperskill.hstest.testcase.SimpleTestCase;
+
+    import java.util.Arrays;
+    import java.util.List;
+
+    public class Test extends StageTest {
+
+        public Test() {
+            super(MainKt.class);
+        }
+
+        @Override
+        public List<SimpleTestCase> generate() {
+            return Arrays.asList(
+                new SimpleTestCase(
+                    "100 + 200 - 300\n/exit",
+                    "0\nBye!"
+                ),
+                new SimpleTestCase(
+                    "4 + 6 - 8\n\n\n2 - 3 - 4\n\n8 + 7 - 4\n/exit",
+                    "2\n-5\n11\nBye!"
+                ),
+                new SimpleTestCase(
+                    "abc\n123+\n+15\n18 22\n\n-22\n22-\n/exit",
+                    "Invalid expression\n" +
+                        "Invalid expression\n" +
+                        "15\n" +
+                        "Invalid expression\n" +
+                        "-22\n" +
+                        "Invalid expression\n" +
+                        "Bye!"
+                ),
+                new SimpleTestCase(
+                    "/go\n/exit",
+                    "Unknown command\nBye!"
+                )
+            );
+        }
+    }
+  learner_created: false
+- name: src/calculator/Main.kt
+  visible: true
+  text: |
+    package calculator
+
+    import java.util.Scanner
+
+    fun main() {
+        val scanner = Scanner(System.`in`)
+
+        while (true) {
+            val input = scanner.nextLine()
+            when {
+                input == "/exit" -> {
+                    print("Bye!")
+                    return
+                }
+                input == "/help" -> {
+                    print("""
+                        The program calculates the sum of numbers.
+                        Even number of minuses gives a plus, and the odd number of minuses gives a minus/
+                    """.trimIndent())
+                }
+                input.isNotEmpty() -> {
+                    val operators = input.split("\\s*\\d+\\s*".toRegex())
+                        .filter { it.isNotEmpty() }
+                    val operands = input.split("\\s*\\D+\\s*".toRegex())
+                        .map {
+                            if (it.isEmpty()) {
+                                0
+                            } else {
+                                it.toInt()
+                            }
+                        }
+                        .toMutableList()
+
+                    operators.forEachIndexed { index, s ->
+                        when (simplifyOperator(s)) {
+                            "+" -> operands[index + 1] = operands[index] + operands[index + 1]
+                            "-" -> operands[index + 1] = operands[index] - operands[index + 1]
+                            "*" -> operands[index + 1] = operands[index] * operands[index + 1]
+                            "/" -> operands[index + 1] = operands[index] / operands[index + 1]
+                        }
+                    }
+
+                    println(operands[operands.size - 1])
+                }
+            }
+        }
+    }
+
+    private fun simplifyOperator(operator: String): String {
+        val y = operator.replace("\\s+".toRegex(), "")
+
+        return if (y.length > 1) {
+            if (y.all { it == '+' }) {
+                "+"
+            } else {
+                if (y.replace("+", "").count() % 2 == 0)
+                    "+"
+                else
+                    "-"
+            }
+        } else {
+            y
+        }
+    }
+  learner_created: true
+feedback_link: https://hyperskill.org/projects/88/stages/490/implement
+status: Solved
+record: 5
