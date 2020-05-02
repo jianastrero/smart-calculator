@@ -1,6 +1,7 @@
 package calculator
 
 import java.lang.Exception
+import java.math.BigInteger
 import java.util.Scanner
 import java.util.Stack
 import kotlin.math.pow
@@ -127,11 +128,11 @@ class SmartCalculator {
         }
     }
 
-    fun evaluate(equation: String): Int {
+    fun evaluate(equation: String): BigInteger {
         try {
             val fixedEquation = fixEquation(equation)
             val postfix = postfix(fixedEquation)
-            val stack = Stack<Int>()
+            val stack = Stack<BigInteger>()
 
             while (postfix.isNotEmpty()) {
 
@@ -139,14 +140,14 @@ class SmartCalculator {
                 postfix.removeAt(0)
 
                 if (x.isValidValue()) {
-                    stack.push(x.toInt())
+                    stack.push(x.toBigInteger())
                 } else {
                     val b = stack.pop()
                     val a = stack.pop()
 
                     val y = when (x) {
                         "^" -> {
-                            a.toFloat().pow(b).toInt()
+                            a.pow(b.intValueExact())
                         }
                         "*" -> {
                             a * b
@@ -161,7 +162,7 @@ class SmartCalculator {
                             a - b
                         }
                         else -> {
-                            0
+                            BigInteger.ZERO
                         }
                     }
 
@@ -190,7 +191,7 @@ class SmartCalculator {
                     val prefix = t.replace("[\\da-zA-Z]+[()]*".toRegex(), "")
                     val suffix = t.replace("[()]*[\\da-zA-Z]+".toRegex(), "")
 
-                    "$prefix${getValue(x).toInt()}$suffix"
+                    "$prefix${getValue(x)}$suffix"
                 } else {
                     throw InvalidExpressionException()
                 }
